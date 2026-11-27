@@ -34,7 +34,7 @@ export const DEFAULT_COMPANIES: Company[] = [
     code: 'CO1',
     google_sheet_id: '1hqdEGXo2GcsJrB49z_DKivLayQUzqq3x8hOzw8tc9Fk',
     sheet_tab_name: 'Sheet1',
-    google_drive_folder_id: '',
+    google_drive_folder_id: '1EfGYqfIEpWJv_CUUa88aypUtgSucuvsJ',
     is_active: true,
   },
   {
@@ -43,7 +43,7 @@ export const DEFAULT_COMPANIES: Company[] = [
     code: 'CO2',
     google_sheet_id: '1VfqrI_tfr-FYQa4TGOcSHAG1BstIxY1H61bu-3i-p4Q',
     sheet_tab_name: 'Sheet1',
-    google_drive_folder_id: '',
+    google_drive_folder_id: '17XHBcn8ojtZbKoi8Wi01QOkVEYCEJvjy',
     is_active: true,
   },
 ];
