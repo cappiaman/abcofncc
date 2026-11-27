@@ -5,7 +5,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { NavTab } from './BottomNav';
-import { PlusCircle, History, FolderKanban, BarChart3, ShieldCheck, FileSpreadsheet, Building2 } from 'lucide-react';
+import { PlusCircle, History, FolderKanban, BarChart3, ShieldCheck, FileSpreadsheet, Building2, ExternalLink } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: NavTab;

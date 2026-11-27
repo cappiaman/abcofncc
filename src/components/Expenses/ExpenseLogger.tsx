@@ -42,6 +42,7 @@ import {
   CreditCard,
   Tag,
   HelpCircle,
+  ExternalLink,
 } from 'lucide-react';
 
 interface ExpenseLoggerProps {
