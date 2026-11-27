@@ -23,9 +23,30 @@ export interface Company {
   sheet_tab_name: string;
   google_drive_folder_id: string;
   is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 }
+
+export const DEFAULT_COMPANIES: Company[] = [
+  {
+    id: 'c0100000-0000-0000-0000-000000000001',
+    name: 'Ulpala Solution Pvt Ltd',
+    code: 'CO1',
+    google_sheet_id: '1hqdEGXo2GcsJrB49z_DKivLayQUzqq3x8hOzw8tc9Fk',
+    sheet_tab_name: 'Expenses',
+    google_drive_folder_id: '',
+    is_active: true,
+  },
+  {
+    id: 'c0200000-0000-0000-0000-000000000002',
+    name: 'Savana Force LLP',
+    code: 'CO2',
+    google_sheet_id: '1VfqrI_tfr-FYQa4TGOcSHAG1BstIxY1H61bu-3i-p4Q',
+    sheet_tab_name: 'Expenses',
+    google_drive_folder_id: '',
+    is_active: true,
+  },
+];
 
 export type ProjectStatus = 'active' | 'completed' | 'on_hold' | 'planned';
 
@@ -36,12 +57,18 @@ export interface Project {
   company_id?: string;
   client_name?: string;
   description?: string;
-  budget?: number;
+  project_value?: number; // Total approximate project cost/value in INR
+  budget?: number;        // Expense budget in INR
+  people_count?: number;  // Number of people involved
+  people_involved?: string; // Names / roles of people utilized
+  project_location?: string; // Place of project
+  manufacturing_unit?: string; // Manufacturing unit utilized
+  communication?: string;   // Communication details, POC, contacts
   status: ProjectStatus;
   start_date?: string;
   end_date?: string;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
   company?: Company;
 }
 

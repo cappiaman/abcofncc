@@ -15,6 +15,7 @@ import {
   PaymentMethod,
   PaidFromSource,
   AIParseResult,
+  DEFAULT_COMPANIES,
 } from '../../types';
 import {
   uploadReceiptFile,
@@ -74,9 +75,11 @@ export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  const effectiveCompanies = companies && companies.length > 0 ? companies : DEFAULT_COMPANIES;
+
   // Form Fields
   const [companyId, setCompanyId] = useState<string>(
-    defaultCompanyId || (companies[0]?.id || '')
+    defaultCompanyId || effectiveCompanies[0].id
   );
   const [projectId, setProjectId] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
@@ -91,10 +94,10 @@ export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
 
   // Update default company when available
   useEffect(() => {
-    if (!companyId && companies.length > 0) {
-      setCompanyId(defaultCompanyId || companies[0].id);
+    if (!companyId || !effectiveCompanies.some((c) => c.id === companyId)) {
+      setCompanyId(defaultCompanyId || effectiveCompanies[0].id);
     }
-  }, [companies, defaultCompanyId]);
+  }, [effectiveCompanies, defaultCompanyId, companyId]);
 
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -224,7 +227,7 @@ export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
       return;
     }
 
-    const selectedCompany = companies.find((c) => c.id === companyId);
+    const selectedCompany = effectiveCompanies.find((c) => c.id === companyId) || effectiveCompanies[0];
     if (!selectedCompany) {
       setErrorMessage('Selected company does not exist.');
       return;
@@ -530,6 +533,18 @@ export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
                   <Building2 className="w-3.5 h-3.5 text-sky-400" />
                   <span>Target Company *</span>
                 </label>
+                {companyId && (
+                  <a
+                    href={`https://docs.google.com/spreadsheets/d/${effectiveCompanies.find((c) => c.id === companyId)?.google_sheet_id || '1hqdEGXo2GcsJrB49z_DKivLayQUzqq3x8hOzw8tc9Fk'}/edit`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
+                    title="Open company Google Sheet"
+                  >
+                    <span>Google Sheet</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                )}
               </div>
               <select
                 required
@@ -537,7 +552,7 @@ export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
                 onChange={(e) => setCompanyId(e.target.value)}
                 className="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
               >
-                {companies.map((c) => (
+                {effectiveCompanies.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name} ({c.code})
                   </option>

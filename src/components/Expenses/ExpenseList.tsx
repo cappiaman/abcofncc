@@ -12,6 +12,7 @@ import {
   EXPENSE_CATEGORIES,
   PAYMENT_METHODS,
   PAID_FROM_SOURCES,
+  DEFAULT_COMPANIES,
 } from '../../types';
 import { supabase, triggerExpenseSync, getReceiptImageUrl } from '../../lib/supabase';
 import { formatINR, formatDate, formatTime12 } from '../../lib/utils';
@@ -52,6 +53,7 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
   selectedCompanyId,
 }) => {
   const { user, isAdmin } = useAuth();
+  const effectiveCompanies = companies && companies.length > 0 ? companies : DEFAULT_COMPANIES;
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -288,9 +290,21 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
 
         {/* Filter Stats Bar */}
         <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="text-slate-400">
-            Showing <span className="font-semibold text-white">{filteredExpenses.length}</span>{' '}
-            {filteredExpenses.length === 1 ? 'expense' : 'expenses'}
+          <div className="flex items-center gap-3">
+            <span className="text-slate-400">
+              Showing <span className="font-semibold text-white">{filteredExpenses.length}</span>{' '}
+              {filteredExpenses.length === 1 ? 'expense' : 'expenses'}
+            </span>
+            <a
+              href={`https://docs.google.com/spreadsheets/d/${(effectiveCompanies.find((c) => c.id === (filterCompany || selectedCompanyId)) || effectiveCompanies[0]).google_sheet_id}/edit`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition-colors"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Open in Google Sheets</span>
+              <ExternalLink className="w-3 h-3 opacity-70" />
+            </a>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-slate-400">Total Filtered:</span>

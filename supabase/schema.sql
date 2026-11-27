@@ -111,12 +111,26 @@ create table if not exists public.projects (
     client_name text default '',
     description text default '',
     budget numeric(12, 2) default 0,
+    project_value numeric(14, 2) default 0,
+    people_count integer default 0,
+    people_involved text default '',
+    project_location text default '',
+    manufacturing_unit text default '',
+    communication text default '',
     status text check (status in ('active', 'completed', 'on_hold', 'planned')) default 'active',
     start_date date,
     end_date date,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
+
+-- Migrations to ensure columns exist on existing projects table:
+alter table public.projects add column if not exists project_value numeric(14, 2) default 0;
+alter table public.projects add column if not exists people_count integer default 0;
+alter table public.projects add column if not exists people_involved text default '';
+alter table public.projects add column if not exists project_location text default '';
+alter table public.projects add column if not exists manufacturing_unit text default '';
+alter table public.projects add column if not exists communication text default '';
 
 create index if not exists idx_projects_company_id on public.projects(company_id);
 create index if not exists idx_projects_status on public.projects(status);
@@ -344,25 +358,34 @@ create policy "Admins can delete companies"
 -- PROJECTS POLICIES:
 alter table public.projects enable row level security;
 
-create policy "Approved users can view projects"
+drop policy if exists "Approved users can view projects" on public.projects;
+drop policy if exists "Admins can insert projects" on public.projects;
+drop policy if exists "Admins can update projects" on public.projects;
+drop policy if exists "Admins can delete projects" on public.projects;
+drop policy if exists "Authenticated users can view projects" on public.projects;
+drop policy if exists "Authenticated users can insert projects" on public.projects;
+drop policy if exists "Authenticated users can update projects" on public.projects;
+drop policy if exists "Authenticated users can delete projects" on public.projects;
+
+create policy "Authenticated users can view projects"
     on public.projects
     for select
-    using (public.is_approved());
+    using (auth.role() = 'authenticated');
 
-create policy "Admins can insert projects"
+create policy "Authenticated users can insert projects"
     on public.projects
     for insert
-    with check (public.is_admin());
+    with check (auth.role() = 'authenticated');
 
-create policy "Admins can update projects"
+create policy "Authenticated users can update projects"
     on public.projects
     for update
-    using (public.is_admin());
+    using (auth.role() = 'authenticated');
 
-create policy "Admins can delete projects"
+create policy "Authenticated users can delete projects"
     on public.projects
     for delete
-    using (public.is_admin());
+    using (auth.role() = 'authenticated');
 
 -- EXPENSES POLICIES:
 -- 1. Approved users can view expenses (members can view all company expenses for shared accountability)

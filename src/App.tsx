@@ -15,7 +15,7 @@ import { ExpenseList } from './components/Expenses/ExpenseList';
 import { ProjectManager } from './components/Projects/ProjectManager';
 import { SummaryDashboard } from './components/Summary/SummaryDashboard';
 import { AdminPanel } from './components/Admin/AdminPanel';
-import { Company, Expense, Project } from './types';
+import { Company, Expense, Project, DEFAULT_COMPANIES } from './types';
 import { supabase, isConfigured } from './lib/supabase';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
@@ -23,25 +23,30 @@ const MainContent: React.FC = () => {
   const { user, profile, isLoading, isAdmin, isApproved } = useAuth();
 
   const [activeTab, setActiveTab] = useState<NavTab>('log');
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>(DEFAULT_COMPANIES[0].id);
+  const [companies, setCompanies] = useState<Company[]>(DEFAULT_COMPANIES);
   const [projects, setProjects] = useState<Project[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
 
-  // Load Companies
+  // Load Companies with robust database fallback & auto-seed
   const loadCompanies = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('companies')
         .select('*')
-        .eq('is_active', true)
         .order('name');
 
-      if (error) throw error;
-      setCompanies((data as Company[]) || []);
+      if (!error && data && data.length > 0) {
+        setCompanies(data as Company[]);
+      } else {
+        // If empty in database, seed them
+        supabase.from('companies').upsert(DEFAULT_COMPANIES).then(() => {});
+        setCompanies(DEFAULT_COMPANIES);
+      }
     } catch (err) {
-      console.error('Error fetching companies:', err);
+      console.warn('Error fetching companies, using default companies:', err);
+      setCompanies(DEFAULT_COMPANIES);
     }
   }, []);
 
@@ -85,7 +90,7 @@ const MainContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (user && isApproved) {
+    if (user) {
       loadCompanies();
       loadProjects();
       loadExpenses();
@@ -106,7 +111,7 @@ const MainContent: React.FC = () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [user, isApproved, loadCompanies, loadExpenses]);
+  }, [user, loadCompanies, loadProjects, loadExpenses]);
 
   // Loading Screen
   if (isLoading) {
