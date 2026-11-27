@@ -278,7 +278,30 @@ Deno.serve(async (req: Request) => {
     // 3. Live Sync to Company's Google Sheet
     if (company.google_sheet_id) {
       const sheetId = company.google_sheet_id;
-      const tabName = company.sheet_tab_name || "Expenses";
+      let tabName = company.sheet_tab_name || "Expenses";
+
+      // Dynamically resolve active tab name in the spreadsheet
+      try {
+        const metaRes = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}?fields=sheets.properties.title`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        if (metaRes.ok) {
+          const metaData = await metaRes.json();
+          const titles = (metaData.sheets || []).map((s: any) => s.properties?.title);
+          if (titles.length > 0) {
+            if (titles.includes(tabName)) {
+              // configured tabName exists
+            } else if (titles.includes("Sheet1")) {
+              tabName = "Sheet1";
+            } else {
+              tabName = titles[0];
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Could not inspect sheet tabs:", e);
+      }
 
       // Check if header row exists
       const headerCheckRes = await fetch(
@@ -288,10 +311,15 @@ Deno.serve(async (req: Request) => {
         }
       );
 
+      if (!headerCheckRes.ok) {
+        const errText = await headerCheckRes.text();
+        throw new Error(`Google Sheets range check failed (${tabName}): ${errText}`);
+      }
+
       const headerCheckData = await headerCheckRes.json();
       if (!headerCheckData.values || headerCheckData.values.length === 0) {
         // Write headers
-        await fetch(
+        const putHeaderRes = await fetch(
           `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(tabName)}!A1:M1?valueInputOption=USER_ENTERED`,
           {
             method: "PUT",
@@ -302,6 +330,9 @@ Deno.serve(async (req: Request) => {
             body: JSON.stringify({ values: [SHEET_HEADERS] }),
           }
         );
+        if (!putHeaderRes.ok) {
+          throw new Error(`Failed to write headers to Google Sheet: ${await putHeaderRes.text()}`);
+        }
       }
 
       // Read Column A to locate row by Receipt Code
@@ -311,6 +342,9 @@ Deno.serve(async (req: Request) => {
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
+      if (!colARes.ok) {
+        throw new Error(`Failed to read Column A from Google Sheet: ${await colARes.text()}`);
+      }
       const colAData = await colARes.json();
       const existingRows = colAData.values || [];
 
@@ -345,7 +379,7 @@ Deno.serve(async (req: Request) => {
       if (targetRowIndex > 0) {
         // Update row in place
         const updateRange = `${tabName}!A${targetRowIndex}:M${targetRowIndex}`;
-        await fetch(
+        const updateRes = await fetch(
           `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(updateRange)}?valueInputOption=USER_ENTERED`,
           {
             method: "PUT",
@@ -356,10 +390,13 @@ Deno.serve(async (req: Request) => {
             body: JSON.stringify({ values: [rowValues] }),
           }
         );
+        if (!updateRes.ok) {
+          throw new Error(`Failed to update row in Google Sheet: ${await updateRes.text()}`);
+        }
       } else {
         // Append row
         const appendRange = `${tabName}!A:M`;
-        await fetch(
+        const appendRes = await fetch(
           `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(appendRange)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
           {
             method: "POST",
@@ -370,6 +407,9 @@ Deno.serve(async (req: Request) => {
             body: JSON.stringify({ values: [rowValues] }),
           }
         );
+        if (!appendRes.ok) {
+          throw new Error(`Failed to append row to Google Sheet: ${await appendRes.text()}`);
+        }
       }
 
       // If company changed, remove the row from the old company's sheet
