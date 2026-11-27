@@ -19,16 +19,24 @@ export const supabase = createClient(
 
 /**
  * Upload receipt image to Supabase Storage bucket 'receipts'
+ * Stored under {companyCode}/{receiptCode}.{ext}
  */
-export async function uploadReceiptFile(file: File, folderPrefix = 'raw'): Promise<string> {
+export async function uploadReceiptFile(
+  file: File,
+  folderPrefix = 'raw',
+  receiptCode?: string
+): Promise<string> {
   const fileExt = file.name.split('.').pop() || 'jpg';
-  const fileName = `${folderPrefix}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+  const cleanReceiptCode = receiptCode ? receiptCode.trim().replace(/[^a-zA-Z0-9_-]/g, '_') : null;
+  const fileName = cleanReceiptCode
+    ? `${folderPrefix}/${cleanReceiptCode}.${fileExt}`
+    : `${folderPrefix}/${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
 
   const { data, error } = await supabase.storage
     .from('receipts')
     .upload(fileName, file, {
       cacheControl: '3600',
-      upsert: false,
+      upsert: true,
     });
 
   if (error) {

@@ -240,10 +240,10 @@ export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
       // 1. Generate unique receipt code: {COMPANY_CODE}-{YYYYMMDD}-{SEQUENCE}
       const receiptCode = await getNextReceiptCode(selectedCompany.code, expenseDate);
 
-      // 2. Upload image to Supabase Storage if present
+      // 2. Upload image to Supabase Storage if present (named strictly by receipt code)
       let storagePath = '';
       if (selectedFile) {
-        storagePath = await uploadReceiptFile(selectedFile, selectedCompany.code);
+        storagePath = await uploadReceiptFile(selectedFile, selectedCompany.code, receiptCode);
       }
 
       // 3. Insert expense row into Supabase

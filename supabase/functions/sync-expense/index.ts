@@ -356,7 +356,10 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      const receiptLink = driveFileUrl ? driveFileUrl : "Cash / No Receipt";
+      const publicStorageUrl = expense.receipt_image_path
+        ? `${SUPABASE_URL}/storage/v1/object/public/receipts/${expense.receipt_image_path}`
+        : null;
+      const receiptLink = driveFileUrl || publicStorageUrl || "Cash / No Receipt";
       const nowFormatted = new Date().toISOString().replace("T", " ").substring(0, 19);
 
       // Exact 13 columns
@@ -534,11 +537,15 @@ Deno.serve(async (req: Request) => {
     }
 
     // 5. Update Supabase expense record as Synced
+    const fallbackPhotoUrl = expense.receipt_image_path
+      ? `${SUPABASE_URL}/storage/v1/object/public/receipts/${expense.receipt_image_path}`
+      : null;
+
     const { error: updateErr } = await supabase
       .from("expenses")
       .update({
         drive_file_id: driveFileId,
-        drive_file_url: driveFileUrl,
+        drive_file_url: driveFileUrl || fallbackPhotoUrl,
         sync_status: "synced",
         sync_error: null,
         updated_at: new Date().toISOString(),
