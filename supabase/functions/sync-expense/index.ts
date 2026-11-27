@@ -200,9 +200,10 @@ Deno.serve(async (req: Request) => {
 
     let driveFileId = expense.drive_file_id || "";
     let driveFileUrl = expense.drive_file_url || "";
+    let driveUploadError = "";
 
-    // 2. Upload receipt image to Google Drive if attached and not yet uploaded
-    if (expense.receipt_image_path && (!driveFileId || !driveFileUrl)) {
+    // 2. Upload receipt image to Google Drive if attached and no drive_file_id yet
+    if (expense.receipt_image_path && !driveFileId) {
       try {
         // Download image from Supabase Storage
         const { data: fileData, error: downloadErr } = await supabase.storage
@@ -211,6 +212,7 @@ Deno.serve(async (req: Request) => {
 
         if (downloadErr) {
           console.error("Storage download error:", downloadErr);
+          driveUploadError = `Storage download failed: ${downloadErr.message}`;
         } else if (fileData) {
           const extension = expense.receipt_image_path.split(".").pop() || "jpg";
           const targetFileName = `${expense.receipt_code}.${extension}`;
@@ -238,7 +240,7 @@ Deno.serve(async (req: Request) => {
           ]);
 
           const driveUploadRes = await fetch(
-            "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink",
+            "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,webViewLink",
             {
               method: "POST",
               headers: {
@@ -255,7 +257,7 @@ Deno.serve(async (req: Request) => {
             driveFileUrl = driveData.webViewLink || `https://drive.google.com/file/d/${driveFileId}/view`;
 
             // Make file readable to anyone with link (or company workspace)
-            await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}/permissions`, {
+            await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}/permissions?supportsAllDrives=true`, {
               method: "POST",
               headers: {
                 Authorization: `Bearer ${accessToken}`,
@@ -267,11 +269,14 @@ Deno.serve(async (req: Request) => {
               }),
             });
           } else {
-            console.error("Drive upload failed:", await driveUploadRes.text());
+            const errTxt = await driveUploadRes.text();
+            console.error("Drive upload failed:", errTxt);
+            driveUploadError = errTxt;
           }
         }
-      } catch (uploadError) {
+      } catch (uploadError: any) {
         console.error("Error during Drive file upload:", uploadError);
+        driveUploadError = uploadError?.message || String(uploadError);
       }
     }
 
@@ -561,6 +566,7 @@ Deno.serve(async (req: Request) => {
         success: true,
         receipt_code: expense.receipt_code,
         drive_file_url: driveFileUrl,
+        drive_upload_error: driveUploadError || null,
         sync_status: "synced",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
