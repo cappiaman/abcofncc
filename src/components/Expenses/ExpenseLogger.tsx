@@ -101,13 +101,11 @@ export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
     }
   }, [effectiveCompanies, defaultCompanyId, companyId]);
 
-  // Handle file selection with automatic lightweight compression
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawFile = e.target.files?.[0];
-    if (rawFile) {
+  // Handle file selection (preserves 100% original full resolution and readable size)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
       setErrorMessage(null);
-      // Automatically compress photo to ~70-90 KB to preserve free Supabase storage
-      const file = await compressReceiptImage(rawFile);
       setSelectedFile(file);
       const url = URL.createObjectURL(file);
       setImagePreview(url);
