@@ -198,6 +198,10 @@ Deno.serve(async (req: Request) => {
     // Authenticate with Google
     const accessToken = await getGoogleAccessToken(serviceAccount);
 
+    const GOOGLE_DRIVE_WEB_APP_URL =
+      Deno.env.get("GOOGLE_DRIVE_WEB_APP_URL") ||
+      "https://script.google.com/macros/s/AKfycbwkjxvkrV0C1CUQZtTOFP4I0Fm5Ix1g9Pl8E7iag4EmolZpujsmgrtmViJhkBAPbTCJBg/exec";
+
     let driveFileId = expense.drive_file_id || "";
     let driveFileUrl = expense.drive_file_url || "";
     let driveUploadError = "";
@@ -217,61 +221,48 @@ Deno.serve(async (req: Request) => {
           const extension = expense.receipt_image_path.split(".").pop() || "jpg";
           const targetFileName = `${expense.receipt_code}.${extension}`;
 
-          const metadata: any = {
-            name: targetFileName,
-          };
-          if (company.google_drive_folder_id) {
-            metadata.parents = [company.google_drive_folder_id];
-          }
-
           const fileBytes = new Uint8Array(await fileData.arrayBuffer());
-          const boundary = "-------314159265358979323846";
-          const delimiter = `\r\n--${boundary}\r\n`;
-          const closeDelimiter = `\r\n--${boundary}--`;
+          let binary = "";
+          for (let i = 0; i < fileBytes.byteLength; i++) {
+            binary += String.fromCharCode(fileBytes[i]);
+          }
+          const base64Data = btoa(binary);
 
-          const multipartBody = new Blob([
-            delimiter,
-            'Content-Type: application/json; charset=UTF-8\r\n\r\n',
-            JSON.stringify(metadata),
-            delimiter,
-            `Content-Type: ${fileData.type || 'image/jpeg'}\r\n\r\n`,
-            fileBytes,
-            closeDelimiter,
-          ]);
+          // Upload directly to user's Google Drive folder via authorized Web App
+          const uploadPayload = {
+            folderId: company.google_drive_folder_id,
+            fileName: targetFileName,
+            base64: base64Data,
+            mimeType: fileData.type || "image/jpeg",
+          };
 
-          const driveUploadRes = await fetch(
-            "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,webViewLink",
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                "Content-Type": `multipart/related; boundary=${boundary}`,
-              },
-              body: multipartBody,
+          const appRes = await fetch(GOOGLE_DRIVE_WEB_APP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(uploadPayload),
+          });
+
+          if (appRes.ok) {
+            const result = await appRes.json();
+            if (result.success && result.url) {
+              driveFileId = result.fileId || "";
+              driveFileUrl = result.url;
+              console.log("Successfully uploaded to Google Drive:", driveFileUrl);
+
+              // Clean up temporary Supabase Storage to preserve 1GB free tier
+              try {
+                await supabase.storage.from("receipts").remove([expense.receipt_image_path]);
+              } catch (cleanErr) {
+                console.warn("Storage cleanup note:", cleanErr);
+              }
+            } else {
+              driveUploadError = result.error || "Web App upload error";
+              console.error("Web App Drive upload failed:", driveUploadError);
             }
-          );
-
-          if (driveUploadRes.ok) {
-            const driveData = await driveUploadRes.json();
-            driveFileId = driveData.id;
-            driveFileUrl = driveData.webViewLink || `https://drive.google.com/file/d/${driveFileId}/view`;
-
-            // Make file readable to anyone with link (or company workspace)
-            await fetch(`https://www.googleapis.com/drive/v3/files/${driveFileId}/permissions?supportsAllDrives=true`, {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                role: "reader",
-                type: "anyone",
-              }),
-            });
           } else {
-            const errTxt = await driveUploadRes.text();
-            console.error("Drive upload failed:", errTxt);
-            driveUploadError = errTxt;
+            const errTxt = await appRes.text();
+            driveUploadError = `Web App HTTP error: ${errTxt}`;
+            console.error(driveUploadError);
           }
         }
       } catch (uploadError: any) {
