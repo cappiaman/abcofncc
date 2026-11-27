@@ -25,6 +25,7 @@ import {
   supabase,
 } from '../../lib/supabase';
 import { getTodayDateStr, getCurrentTimeStr, formatINR } from '../../lib/utils';
+import { compressReceiptImage } from '../../lib/imageCompression';
 import {
   Sparkles,
   Camera,
@@ -100,14 +101,16 @@ export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
     }
   }, [effectiveCompanies, defaultCompanyId, companyId]);
 
-  // Handle file selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  // Handle file selection with automatic lightweight compression
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFile = e.target.files?.[0];
+    if (rawFile) {
+      setErrorMessage(null);
+      // Automatically compress photo to ~70-90 KB to preserve free Supabase storage
+      const file = await compressReceiptImage(rawFile);
       setSelectedFile(file);
       const url = URL.createObjectURL(file);
       setImagePreview(url);
-      setErrorMessage(null);
       // Auto analyze when uploaded
       handleAIAnalyze(file);
     }
