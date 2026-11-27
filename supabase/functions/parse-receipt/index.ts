@@ -77,32 +77,72 @@ Deno.serve(async (req: Request) => {
     }
 
     const promptText = `
-You are an expert Indian payment receipt & bill OCR system.
-Analyze this payment screenshot (such as Paytm, PhonePe, Google Pay, CRED, BHIM, Bank SMS/App, Uber, Ola, Metro card recharge, POS slip, or physical invoice).
+You are an expert Indian payment receipt, bill & expense OCR extraction engine.
+Your task is to analyze this image (which could be ANY format: Paytm, PhonePe, Google Pay, CRED, BHIM, Bank SMS, Delhi Metro QR ticket, Metro smart card recharge slip, MCD/NDMC/mall parking slip, Fastag receipt, fuel/petrol pump slip, Uber/Ola ride invoice, printed thermal POS cash memo, GST tax invoice, or hand-written vendor receipt).
 
-Extract the following information accurately:
-1. amount: The transaction amount as a numeric float in INR (no currency symbol, e.g. 150.00).
-2. expense_date: The transaction date in strictly YYYY-MM-DD format. If only day and month are present, assume the current year (2026).
-3. expense_time: The transaction time in 24-hour format HH:MM (e.g. "14:35" or "09:15"). If absent, return null.
-4. payment_type: One of: 'Paytm / UPI', 'Bank Transfer', 'Credit / Debit Card', 'Cash', 'Petty Cash'. Detect UPI apps (Paytm, PhonePe, GPay) as 'Paytm / UPI'.
-5. payment_id: Transaction reference, UTR, UPI Ref No, Paytm Order ID, or Bank Reference number.
-6. merchant_or_payee: Name of the person, shop, vendor, or business paid.
-7. description: CRITICAL: Specifically scan for user-entered remarks, notes, "Add a message", "For", "Remarks", or purpose typed by the user in the Paytm/UPI/Bank screenshot (e.g., "lunch", "office chai", "auto fare to client", "stationery"). If none, synthesize a clear 3-5 word summary based on the merchant name.
-8. suggested_category: Choose the single closest match from:
-   - 'Metro'
-   - 'Food & Tea'
-   - 'Rickshaw / Auto / Cab'
-   - 'Travel'
-   - 'Petty Cash'
-   - 'Office & Operations'
-   - 'Supplies & Materials'
-   - 'Client Entertainment'
-   - 'Fuel / Vehicle'
-   - 'Misc'
-9. confidence_score: A number between 0.0 and 1.0 indicating overall parsing confidence.
-10. low_confidence_fields: An array of field names (e.g. ["payment_id", "description"]) that were missing, inferred with low confidence, or require user review.
+Carefully read ALL text in English, Hindi, and numbers to extract the following structured details:
 
-Return ONLY a valid JSON object with these exact keys:
+1. amount (number or null):
+   - The final total amount paid in INR as a clean float (e.g. 150.00, 700.00, 20.00).
+   - Strip all currency symbols (₹, Rs., INR, /-).
+   - For UPI screens: The large highlighted paid amount.
+   - For invoices/bills: The Grand Total, Net Payable, "कुल राशि", or "Total".
+   - For parking/metro/bus tickets: The ticket fare or parking fee charged.
+
+2. expense_date (string "YYYY-MM-DD" or null):
+   - The transaction date. Parse formats like "27 Nov 2026", "27/11/2026", "27-11-26", "Today", etc. into strictly YYYY-MM-DD.
+   - If only date and month are present, assume the year is 2026.
+   - If no date is printed on a cash slip, return null.
+
+3. expense_time (string "HH:MM" in 24-hr format or null):
+   - Transaction or entry time (e.g. "09:43", "14:15", "21:30").
+   - Convert 12-hour AM/PM to 24-hour (e.g. "03:15 PM" -> "15:15", "10:20 AM" -> "10:20").
+   - If absent, return null.
+
+4. payment_type (string):
+   - Must be strictly one of:
+     * 'Paytm / UPI' (Use for Paytm, PhonePe, GPay, BHIM, CRED, WhatsApp Pay, Amazon Pay, UPI QR scans)
+     * 'Cash' (Use for physical cash memos, hand-written slips, parking tickets without digital payment ID, cash receipts)
+     * 'Credit / Debit Card' (Use for card swipe POS slips with card number masking, e.g. ****1234)
+     * 'Bank Transfer' (Use for NEFT, RTGS, IMPS bank transfer receipts or net banking)
+     * 'Petty Cash' (Use for company petty voucher or internal cash slip)
+
+5. payment_id (string):
+   - UPI Ref ID, UTR number (e.g. 12-digit number like 433123891024), Paytm Order ID, Bank Ref No, Invoice No, Ticket No, or Parking Slip barcode number.
+   - If not found on a cash slip, return an empty string "".
+
+6. merchant_or_payee (string):
+   - The recipient name, shop name, vendor, driver, parking authority, or organization paid.
+   - Examples: "MUNNI DEVI", "Delhi Metro Rail Corporation", "MCD Parking Connaught Place", "Indian Oil Corporation", "Sharma Electricals", "Uber India", "Chai Point".
+
+7. description (string):
+   - A clear, concise 3-8 word summary of the expense purpose.
+   - For UPI screens: Prioritize user-entered remarks/messages (e.g. "Add a message", "Remarks", "For: site travel").
+   - For Metro: Station journey (e.g. "Metro ride from Rajiv Chowk to Noida Sector 18" or "Smart card recharge").
+   - For Parking: Location (e.g. "Parking slip at Metro Station").
+   - For Petrol: "Fuel refill at Indian Oil".
+   - For Bills/Invoices: Main goods purchased (e.g. "Electrical supplies & wiring materials").
+
+8. suggested_category (string):
+   - Choose the single best match from:
+     * 'Metro' (Delhi Metro, NMRC, metro tickets, card recharges)
+     * 'Food & Tea' (Tea stall, snacks, restaurant, lunch, chai, bakery)
+     * 'Rickshaw / Auto / Cab' (Auto fare, e-rickshaw, Uber, Ola, Rapido, cab ride)
+     * 'Travel' (Bus ticket, train, toll plaza, Fastag, long distance travel)
+     * 'Fuel / Vehicle' (Petrol, diesel, CNG, vehicle maintenance, tyre puncture, parking slip)
+     * 'Office & Operations' (Printing, stationery, courier, cleaning, office supplies)
+     * 'Supplies & Materials' (Hardware, tools, construction, raw material, manufacturing items)
+     * 'Client Entertainment' (Client lunch, business dinner, meeting refreshments)
+     * 'Petty Cash' (General petty office expense)
+     * 'Misc' (Default fallback if unclear)
+
+9. confidence_score (number):
+   - Float between 0.0 and 1.0 indicating OCR certainty. (0.9+ for clear digital screens, 0.7-0.8 for thermal/faded slips).
+
+10. low_confidence_fields (string[]):
+    - List of any field names that were unreadable, absent, or guessed (e.g. ["payment_id"]).
+
+Return ONLY valid JSON with this exact structure:
 {
   "amount": number or null,
   "expense_date": "YYYY-MM-DD" or null,
