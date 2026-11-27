@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   Expense,
   Company,
+  Project,
   EXPENSE_CATEGORIES,
   PAYMENT_METHODS,
   PAID_FROM_SOURCES,
@@ -38,6 +39,7 @@ import {
 interface ExpenseListProps {
   expenses: Expense[];
   companies: Company[];
+  projects?: Project[];
   onRefresh: () => void;
   selectedCompanyId?: string;
 }
@@ -45,6 +47,7 @@ interface ExpenseListProps {
 export const ExpenseList: React.FC<ExpenseListProps> = ({
   expenses,
   companies,
+  projects = [],
   onRefresh,
   selectedCompanyId,
 }) => {
@@ -594,6 +597,7 @@ export const ExpenseList: React.FC<ExpenseListProps> = ({
       <ExpenseModal
         expense={editingExpense}
         companies={companies}
+        projects={projects}
         onClose={() => setEditingExpense(null)}
         onSaved={onRefresh}
       />

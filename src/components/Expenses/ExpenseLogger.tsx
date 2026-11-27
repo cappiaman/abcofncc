@@ -7,6 +7,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   Company,
+  Project,
   EXPENSE_CATEGORIES,
   PAYMENT_METHODS,
   PAID_FROM_SOURCES,
@@ -44,12 +45,14 @@ import {
 
 interface ExpenseLoggerProps {
   companies: Company[];
+  projects?: Project[];
   onExpenseCreated: () => void;
   defaultCompanyId?: string;
 }
 
 export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
   companies,
+  projects = [],
   onExpenseCreated,
   defaultCompanyId,
 }) => {
@@ -75,6 +78,7 @@ export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
   const [companyId, setCompanyId] = useState<string>(
     defaultCompanyId || (companies[0]?.id || '')
   );
+  const [projectId, setProjectId] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [expenseDate, setExpenseDate] = useState<string>(getTodayDateStr());
   const [expenseTime, setExpenseTime] = useState<string>(getCurrentTimeStr());
@@ -186,6 +190,7 @@ export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
     setMerchantOrPayee('');
     setDescription('');
     setPaymentId('');
+    setProjectId('');
     setLowConfidenceFields([]);
     setDetectedRemarkNote(null);
     setErrorMessage(null);
@@ -246,6 +251,7 @@ export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
           receipt_code: receiptCode,
           company_id: companyId,
           user_id: user.id,
+          project_id: projectId || null,
           expense_date: expenseDate,
           expense_time: expenseTime || '12:00:00',
           expense_timestamp: expenseTimestamp,
@@ -516,27 +522,49 @@ export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
 
         {/* Form Fields Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Target Company (Required) */}
-          <div className="sm:col-span-2">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5 text-sky-400" />
-                <span>Target Company *</span>
-              </label>
-              <span className="text-[11px] text-slate-500">Live-syncs to this company's Sheet</span>
+          {/* Target Company & Project Selection */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:col-span-2">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Target Company *</span>
+                </label>
+              </div>
+              <select
+                required
+                value={companyId}
+                onChange={(e) => setCompanyId(e.target.value)}
+                className="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
+              >
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.code})
+                  </option>
+                ))}
+              </select>
             </div>
-            <select
-              required
-              value={companyId}
-              onChange={(e) => setCompanyId(e.target.value)}
-              className="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
-            >
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.code}) - {c.sheet_tab_name || 'Expenses'}
-                </option>
-              ))}
-            </select>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Assign to Project (Optional)</span>
+                </label>
+              </div>
+              <select
+                value={projectId}
+                onChange={(e) => setProjectId(e.target.value)}
+                className="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
+              >
+                <option value="">No Project (General Operations)</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.code ? `(${p.code})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Amount (INR) */}

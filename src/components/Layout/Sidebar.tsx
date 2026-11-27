@@ -5,7 +5,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { NavTab } from './BottomNav';
-import { PlusCircle, History, BarChart3, ShieldCheck, FileSpreadsheet, Building2 } from 'lucide-react';
+import { PlusCircle, History, FolderKanban, BarChart3, ShieldCheck, FileSpreadsheet, Building2 } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: NavTab;
@@ -18,6 +18,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   const navItems = [
     { id: 'log' as NavTab, label: 'Log Expense', description: 'AI Scan & Manual Entry', icon: PlusCircle },
     { id: 'history' as NavTab, label: 'Expense History', description: 'All Records & Sync Status', icon: History },
+    { id: 'projects' as NavTab, label: 'Projects', description: 'Clients, Budgets & Spending', icon: FolderKanban },
     { id: 'summary' as NavTab, label: 'Summary & Reports', description: 'Reimbursements & Breakdown', icon: BarChart3 },
     ...(isAdmin
       ? [{ id: 'admin' as NavTab, label: 'Admin Dashboard', description: 'Users, Companies & CSV', icon: ShieldCheck }]

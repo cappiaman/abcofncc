@@ -49,12 +49,13 @@ create table if not exists public.companies (
 create index if not exists idx_companies_code on public.companies(code);
 create index if not exists idx_companies_active on public.companies(is_active);
 
--- Seed initial 2 companies with the live Google Sheet IDs provided
+-- Seed initial 2 companies with official company names and live Google Sheet IDs
 insert into public.companies (name, code, google_sheet_id, sheet_tab_name, google_drive_folder_id, is_active)
 values
-    ('Alpha Enterprises', 'CO1', '1hqdEGXo2GcsJrB49z_DKivLayQUzqq3x8hOzw8tc9Fk', 'Expenses', '', true),
-    ('Beta Global Corp', 'CO2', '1VfqrI_tfr-FYQa4TGOcSHAG1BstIxY1H61bu-3i-p4Q', 'Expenses', '', true)
+    ('Ulpala Solution Pvt Ltd', 'CO1', '1hqdEGXo2GcsJrB49z_DKivLayQUzqq3x8hOzw8tc9Fk', 'Expenses', '', true),
+    ('Savana Force LLP', 'CO2', '1VfqrI_tfr-FYQa4TGOcSHAG1BstIxY1H61bu-3i-p4Q', 'Expenses', '', true)
 on conflict (code) do update set
+    name = excluded.name,
     google_sheet_id = excluded.google_sheet_id,
     sheet_tab_name = excluded.sheet_tab_name;
 
@@ -100,13 +101,35 @@ end;
 $$;
 
 -- ------------------------------------------------------------------------------
--- 4. EXPENSES TABLE
+-- 4. PROJECTS TABLE
+-- ------------------------------------------------------------------------------
+create table if not exists public.projects (
+    id uuid primary key default gen_random_uuid(),
+    name text not null,
+    code text default '',
+    company_id uuid references public.companies(id) on delete set null,
+    client_name text default '',
+    description text default '',
+    budget numeric(12, 2) default 0,
+    status text check (status in ('active', 'completed', 'on_hold', 'planned')) default 'active',
+    start_date date,
+    end_date date,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_projects_company_id on public.projects(company_id);
+create index if not exists idx_projects_status on public.projects(status);
+
+-- ------------------------------------------------------------------------------
+-- 5. EXPENSES TABLE
 -- ------------------------------------------------------------------------------
 create table if not exists public.expenses (
     id uuid primary key default gen_random_uuid(),
     receipt_code text not null unique,
     company_id uuid not null references public.companies(id) on delete restrict,
     user_id uuid not null references public.profiles(id) on delete cascade,
+    project_id uuid references public.projects(id) on delete set null,
     expense_date date not null,
     expense_time time not null default '12:00:00',
     expense_timestamp timestamptz not null,
@@ -126,8 +149,12 @@ create table if not exists public.expenses (
     updated_at timestamptz not null default now()
 );
 
+-- In case table already exists without project_id
+alter table public.expenses add column if not exists project_id uuid references public.projects(id) on delete set null;
+
 -- Fast query indexes
 create index if not exists idx_expenses_company_id on public.expenses(company_id);
+create index if not exists idx_expenses_project_id on public.expenses(project_id);
 create index if not exists idx_expenses_user_id on public.expenses(user_id);
 create index if not exists idx_expenses_date on public.expenses(expense_date desc);
 create index if not exists idx_expenses_timestamp on public.expenses(expense_timestamp desc);
@@ -209,6 +236,11 @@ create trigger set_companies_updated_at
 drop trigger if exists set_expenses_updated_at on public.expenses;
 create trigger set_expenses_updated_at
     before update on public.expenses
+    for each row execute function public.touch_updated_at();
+
+drop trigger if exists set_projects_updated_at on public.projects;
+create trigger set_projects_updated_at
+    before update on public.projects
     for each row execute function public.touch_updated_at();
 
 -- ------------------------------------------------------------------------------
@@ -306,6 +338,29 @@ create policy "Admins can update companies"
 
 create policy "Admins can delete companies"
     on public.companies
+    for delete
+    using (public.is_admin());
+
+-- PROJECTS POLICIES:
+alter table public.projects enable row level security;
+
+create policy "Approved users can view projects"
+    on public.projects
+    for select
+    using (public.is_approved());
+
+create policy "Admins can insert projects"
+    on public.projects
+    for insert
+    with check (public.is_admin());
+
+create policy "Admins can update projects"
+    on public.projects
+    for update
+    using (public.is_admin());
+
+create policy "Admins can delete projects"
+    on public.projects
     for delete
     using (public.is_admin());
 

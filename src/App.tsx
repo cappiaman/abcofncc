@@ -12,9 +12,10 @@ import { AppLayout } from './components/Layout/AppLayout';
 import { NavTab } from './components/Layout/BottomNav';
 import { ExpenseLogger } from './components/Expenses/ExpenseLogger';
 import { ExpenseList } from './components/Expenses/ExpenseList';
+import { ProjectManager } from './components/Projects/ProjectManager';
 import { SummaryDashboard } from './components/Summary/SummaryDashboard';
 import { AdminPanel } from './components/Admin/AdminPanel';
-import { Company, Expense } from './types';
+import { Company, Expense, Project } from './types';
 import { supabase, isConfigured } from './lib/supabase';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
@@ -24,6 +25,7 @@ const MainContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavTab>('log');
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
 
@@ -43,6 +45,21 @@ const MainContent: React.FC = () => {
     }
   }, []);
 
+  // Load Projects
+  const loadProjects = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setProjects((data as Project[]) || []);
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+    }
+  }, []);
+
   // Load Expenses with joins
   const loadExpenses = useCallback(async () => {
     setIsLoadingData(true);
@@ -52,6 +69,7 @@ const MainContent: React.FC = () => {
         .select(`
           *,
           company:companies(*),
+          project:projects(name, code),
           user:profiles(full_name, email)
         `)
         .order('expense_date', { ascending: false })
@@ -69,6 +87,7 @@ const MainContent: React.FC = () => {
   useEffect(() => {
     if (user && isApproved) {
       loadCompanies();
+      loadProjects();
       loadExpenses();
 
       // Listen for realtime expense changes
@@ -125,6 +144,7 @@ const MainContent: React.FC = () => {
       {activeTab === 'log' && (
         <ExpenseLogger
           companies={companies}
+          projects={projects}
           onExpenseCreated={() => {
             loadExpenses();
             setActiveTab('history');
@@ -137,7 +157,18 @@ const MainContent: React.FC = () => {
         <ExpenseList
           expenses={expenses}
           companies={companies}
+          projects={projects}
           onRefresh={loadExpenses}
+          selectedCompanyId={selectedCompanyId}
+        />
+      )}
+
+      {activeTab === 'projects' && (
+        <ProjectManager
+          projects={projects}
+          companies={companies}
+          expenses={expenses}
+          onProjectsChanged={loadProjects}
           selectedCompanyId={selectedCompanyId}
         />
       )}

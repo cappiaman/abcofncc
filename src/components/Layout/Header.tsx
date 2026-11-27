@@ -5,7 +5,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Company } from '../../types';
-import { Wallet, Building2, LogOut, Shield } from 'lucide-react';
+import { Wallet, Building2, LogOut, Shield, FileSpreadsheet, ExternalLink } from 'lucide-react';
 
 interface HeaderProps {
   companies: Company[];
@@ -19,6 +19,13 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectCompany,
 }) => {
   const { profile, signOut, isAdmin } = useAuth();
+
+  // Find target Google Sheet for currently selected company or default to first company
+  const currentCompany = companies.find((c) => c.id === selectedCompanyId) || companies[0];
+  const targetSheetId = currentCompany?.google_sheet_id;
+  const sheetUrl = targetSheetId
+    ? `https://docs.google.com/spreadsheets/d/${targetSheetId}/edit`
+    : null;
 
   return (
     <header className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 sm:px-6">
@@ -39,13 +46,30 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
             <p className="text-[11px] text-slate-400 hidden sm:block">
-              Multi-Company & Personal Sync
+              Ulpala Solution & Savana Force
             </p>
           </div>
         </div>
 
-        {/* Global Company Filter / Active Selector */}
+        {/* Global Company Filter, Google Sheet Button & Profile */}
         <div className="flex items-center gap-3">
+          {/* Quick "Take me to Google Sheet" button */}
+          {sheetUrl && (
+            <a
+              href={sheetUrl}
+              target="_blank"
+              rel="noreferrer"
+              title={`Open ${currentCompany?.name || 'Company'} Google Sheet`}
+              className="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 text-xs font-semibold shadow-sm transition-all active:scale-95"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Open Google Sheet</span>
+              <span className="sm:hidden">Sheet</span>
+              <ExternalLink className="w-3 h-3 opacity-70" />
+            </a>
+          )}
+
+          {/* Company Selector */}
           <div className="relative">
             <div className="flex items-center gap-1.5 bg-slate-950/70 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200">
               <Building2 className="w-3.5 h-3.5 text-sky-400 shrink-0" />
@@ -53,14 +77,14 @@ export const Header: React.FC<HeaderProps> = ({
                 aria-label="Filter expenses by company"
                 value={selectedCompanyId}
                 onChange={(e) => onSelectCompany(e.target.value)}
-                className="bg-transparent text-white text-xs font-medium focus:outline-none cursor-pointer pr-2"
+                className="bg-transparent text-white text-xs font-medium focus:outline-none cursor-pointer pr-2 max-w-[130px] sm:max-w-[180px] truncate"
               >
                 <option value="" className="bg-slate-900 text-slate-300">
                   All Companies
                 </option>
                 {companies.map((c) => (
                   <option key={c.id} value={c.id} className="bg-slate-900 text-white">
-                    {c.name} ({c.code})
+                    {c.name}
                   </option>
                 ))}
               </select>

@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import {
   Expense,
   Company,
+  Project,
   EXPENSE_CATEGORIES,
   PAYMENT_METHODS,
   PAID_FROM_SOURCES,
@@ -20,6 +21,7 @@ import { X, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 interface ExpenseModalProps {
   expense: Expense | null;
   companies: Company[];
+  projects?: Project[];
   onClose: () => void;
   onSaved: () => void;
 }
@@ -27,12 +29,14 @@ interface ExpenseModalProps {
 export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   expense,
   companies,
+  projects = [],
   onClose,
   onSaved,
 }) => {
   if (!expense) return null;
 
   const [companyId, setCompanyId] = useState<string>(expense.company_id);
+  const [projectId, setProjectId] = useState<string>(expense.project_id || '');
   const [amount, setAmount] = useState<string>(expense.amount.toString());
   const [expenseDate, setExpenseDate] = useState<string>(expense.expense_date);
   const [expenseTime, setExpenseTime] = useState<string>(
@@ -68,6 +72,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         .from('expenses')
         .update({
           company_id: companyId,
+          project_id: projectId || null,
           amount: numAmount,
           expense_date: expenseDate,
           expense_time: expenseTime || '12:00:00',
@@ -133,8 +138,8 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleUpdate} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Target Company */}
-            <div className="sm:col-span-2">
+            {/* Target Company & Project Selection */}
+            <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                 Target Company *
               </label>
@@ -146,7 +151,25 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
               >
                 {companies.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name} ({c.code}) - {c.sheet_tab_name || 'Expenses'}
+                    {c.name} ({c.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Assigned Project (Optional)
+              </label>
+              <select
+                value={projectId}
+                onChange={(e) => setProjectId(e.target.value)}
+                className="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500"
+              >
+                <option value="">No Project (General Operations)</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.code ? `(${p.code})` : ''}
                   </option>
                 ))}
               </select>

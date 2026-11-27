@@ -27,6 +27,24 @@ export interface Company {
   updated_at: string;
 }
 
+export type ProjectStatus = 'active' | 'completed' | 'on_hold' | 'planned';
+
+export interface Project {
+  id: string;
+  name: string;
+  code?: string;
+  company_id?: string;
+  client_name?: string;
+  description?: string;
+  budget?: number;
+  status: ProjectStatus;
+  start_date?: string;
+  end_date?: string;
+  created_at: string;
+  updated_at: string;
+  company?: Company;
+}
+
 export type CategoryType =
   | 'Metro'
   | 'Food & Tea'
@@ -87,6 +105,7 @@ export interface Expense {
   receipt_code: string;
   company_id: string;
   user_id: string;
+  project_id?: string;
   expense_date: string; // YYYY-MM-DD
   expense_time: string; // HH:MM:SS or HH:MM
   expense_timestamp: string;
@@ -105,6 +124,7 @@ export interface Expense {
   created_at: string;
   updated_at: string;
   company?: Company;
+  project?: Project;
   user?: Profile;
 }
 
@@ -123,6 +143,7 @@ export interface AIParseResult {
 
 export interface ExpenseFormData {
   company_id: string;
+  project_id?: string;
   expense_date: string;
   expense_time: string;
   category: CategoryType;
@@ -137,6 +158,7 @@ export interface ExpenseFormData {
 
 export interface ExpenseFilter {
   company_id?: string;
+  project_id?: string;
   user_id?: string;
   startDate?: string;
   endDate?: string;
