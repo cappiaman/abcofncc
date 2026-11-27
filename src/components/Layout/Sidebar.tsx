@@ -10,9 +10,10 @@ import { PlusCircle, History, FolderKanban, BarChart3, ShieldCheck, FileSpreadsh
 interface SidebarProps {
   activeTab: NavTab;
   onTabChange: (tab: NavTab) => void;
+  pendingApprovalCount?: number;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, pendingApprovalCount = 0 }) => {
   const { isAdmin, profile } = useAuth();
 
   const navItems = [
@@ -42,12 +43,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
               }`}
             >
               <Icon className={`w-5 h-5 mt-0.5 shrink-0 ${isActive ? 'text-sky-400' : 'text-slate-400'}`} />
-              <div>
-                <div className={`text-sm font-medium ${isActive ? 'text-sky-300' : 'text-slate-200'}`}>
-                  {item.label}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-1">
+                  <div className={`text-sm font-medium ${isActive ? 'text-sky-300' : 'text-slate-200'}`}>
+                    {item.label}
+                  </div>
+                  {item.id === 'admin' && pendingApprovalCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-slate-950 animate-pulse">
+                      {pendingApprovalCount}
+                    </span>
+                  )}
                 </div>
                 <div className="text-[11px] text-slate-400 leading-tight mt-0.5">
-                  {item.description}
+                  {item.id === 'admin' && pendingApprovalCount > 0
+                    ? `${pendingApprovalCount} approval waiting`
+                    : item.description}
                 </div>
               </div>
             </button>

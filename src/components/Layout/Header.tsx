@@ -5,18 +5,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Company, DEFAULT_COMPANIES } from '../../types';
-import { Wallet, Building2, LogOut, Shield, FileSpreadsheet, ExternalLink, ChevronDown } from 'lucide-react';
+import { NavTab } from './BottomNav';
+import { Wallet, Building2, LogOut, Shield, FileSpreadsheet, ExternalLink, ChevronDown, Users, AlertCircle } from 'lucide-react';
 
 interface HeaderProps {
   companies: Company[];
   selectedCompanyId: string;
   onSelectCompany: (id: string) => void;
+  pendingApprovalCount?: number;
+  onTabChange?: (tab: NavTab) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   companies,
   selectedCompanyId,
   onSelectCompany,
+  pendingApprovalCount = 0,
+  onTabChange,
 }) => {
   const { profile, signOut, isAdmin } = useAuth();
   const [isSheetMenuOpen, setIsSheetMenuOpen] = useState(false);
@@ -56,6 +61,16 @@ export const Header: React.FC<HeaderProps> = ({
                   <Shield className="w-3 h-3" />
                   ADMIN
                 </span>
+              )}
+              {isAdmin && pendingApprovalCount > 0 && onTabChange && (
+                <button
+                  onClick={() => onTabChange('admin')}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition-all animate-pulse"
+                  title="Click to review pending user approvals"
+                >
+                  <Users className="w-3 h-3 text-amber-400" />
+                  <span>{pendingApprovalCount} Pending</span>
+                </button>
               )}
             </div>
             <p className="text-[11px] text-slate-400 hidden sm:block">

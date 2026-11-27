@@ -390,6 +390,66 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           )}
 
+          {/* Pending Approvals Spotlight Section */}
+          {profiles.filter((p) => p.status === 'pending').length > 0 && (
+            <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3 shadow-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                  </span>
+                  <h4 className="font-bold text-white text-sm">
+                    {profiles.filter((p) => p.status === 'pending').length} User{profiles.filter((p) => p.status === 'pending').length > 1 ? 's' : ''} Awaiting Approval
+                  </h4>
+                </div>
+                <span className="text-[11px] font-semibold text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-500/30">
+                  Action Required
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                {profiles
+                  .filter((p) => p.status === 'pending')
+                  .map((u) => (
+                    <div
+                      key={u.id}
+                      className="bg-slate-900/90 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between gap-3 shadow-md"
+                    >
+                      <div className="truncate">
+                        <div className="font-semibold text-white text-xs truncate">
+                          {u.full_name}
+                        </div>
+                        <div className="text-[11px] text-slate-400 font-mono truncate">
+                          {u.email}
+                        </div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">
+                          Signed up: {formatDate(u.created_at)}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handleUpdateUserStatus(u.id, 'approved', 'member')}
+                          className="py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-all shadow-md active:scale-95 flex items-center gap-1"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Approve</span>
+                        </button>
+                        <button
+                          onClick={() => handleUpdateUserStatus(u.id, 'rejected')}
+                          className="py-1.5 px-2.5 rounded-lg bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white font-semibold text-xs transition-all active:scale-95 flex items-center gap-1"
+                        >
+                          <XCircle className="w-3.5 h-3.5" />
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
           {/* User Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
@@ -447,12 +507,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         {!isCurrentUser ? (
                           <div className="inline-flex items-center gap-1.5">
                             {p.status === 'pending' && (
-                              <button
-                                onClick={() => handleUpdateUserStatus(p.id, 'approved')}
-                                className="py-1 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-[11px] transition-colors"
-                              >
-                                Approve
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => handleUpdateUserStatus(p.id, 'approved', 'member')}
+                                  className="py-1 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-[11px] transition-colors"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateUserStatus(p.id, 'rejected')}
+                                  className="py-1 px-2 rounded-lg bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white font-medium text-[11px] transition-colors"
+                                >
+                                  Reject
+                                </button>
+                              </div>
                             )}
 
                             {p.status === 'approved' && p.role !== 'admin' && (

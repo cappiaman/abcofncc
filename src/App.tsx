@@ -27,7 +27,24 @@ const MainContent: React.FC = () => {
   const [companies, setCompanies] = useState<Company[]>(DEFAULT_COMPANIES);
   const [projects, setProjects] = useState<Project[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [pendingApprovalCount, setPendingApprovalCount] = useState<number>(0);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
+
+  // Load Pending User Approvals count
+  const loadPendingApprovals = useCallback(async () => {
+    try {
+      const { count, error } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
+      if (!error && count !== null) {
+        setPendingApprovalCount(count);
+      }
+    } catch (err) {
+      console.warn('Error loading pending approvals:', err);
+    }
+  }, []);
 
   // Load Companies with robust database fallback & auto-seed
   const loadCompanies = useCallback(async () => {
@@ -94,6 +111,7 @@ const MainContent: React.FC = () => {
       loadCompanies();
       loadProjects();
       loadExpenses();
+      loadPendingApprovals();
 
       // Listen for realtime expense changes
       const channel = supabase
@@ -107,11 +125,24 @@ const MainContent: React.FC = () => {
         )
         .subscribe();
 
+      // Listen for realtime profiles changes (e.g. new signups needing approval)
+      const profilesChannel = supabase
+        .channel('profiles-admin-watch')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'profiles' },
+          () => {
+            loadPendingApprovals();
+          }
+        )
+        .subscribe();
+
       return () => {
         supabase.removeChannel(channel);
+        supabase.removeChannel(profilesChannel);
       };
     }
-  }, [user, loadCompanies, loadProjects, loadExpenses]);
+  }, [user, loadCompanies, loadProjects, loadExpenses, loadPendingApprovals]);
 
   // Loading Screen
   if (isLoading) {
@@ -145,6 +176,7 @@ const MainContent: React.FC = () => {
       onSelectCompany={setSelectedCompanyId}
       activeTab={activeTab}
       onTabChange={setActiveTab}
+      pendingApprovalCount={pendingApprovalCount}
     >
       {activeTab === 'log' && (
         <ExpenseLogger

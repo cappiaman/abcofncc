@@ -11,9 +11,10 @@ export type NavTab = 'log' | 'history' | 'projects' | 'summary' | 'admin';
 interface BottomNavProps {
   activeTab: NavTab;
   onTabChange: (tab: NavTab) => void;
+  pendingApprovalCount?: number;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) => {
+export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange, pendingApprovalCount = 0 }) => {
   const { isAdmin } = useAuth();
 
   const tabs = [
@@ -34,13 +35,20 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabChange }) 
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`flex flex-col items-center justify-center gap-1 transition-all ${
+              className={`relative flex flex-col items-center justify-center gap-1 transition-all ${
                 isActive
                   ? 'text-sky-400 font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'scale-110' : ''} transition-transform`} />
+              <div className="relative">
+                <Icon className={`w-5 h-5 ${isActive ? 'scale-110' : ''} transition-transform`} />
+                {tab.id === 'admin' && pendingApprovalCount > 0 && (
+                  <span className="absolute -top-1 -right-2 w-3.5 h-3.5 bg-amber-500 text-slate-950 font-bold text-[9px] rounded-full flex items-center justify-center animate-pulse">
+                    {pendingApprovalCount}
+                  </span>
+                )}
+              </div>
               <span className="text-[10px]">{tab.label}</span>
             </button>
           );
