@@ -29,7 +29,7 @@ export interface Company {
 
 export const DEFAULT_COMPANIES: Company[] = [
   {
-    id: 'c0100000-0000-0000-0000-000000000001',
+    id: '0e316086-dad1-47e0-af2c-d990315bdb14',
     name: 'Ulpala Solution Pvt Ltd',
     code: 'CO1',
     google_sheet_id: '1hqdEGXo2GcsJrB49z_DKivLayQUzqq3x8hOzw8tc9Fk',
@@ -38,7 +38,7 @@ export const DEFAULT_COMPANIES: Company[] = [
     is_active: true,
   },
   {
-    id: 'c0200000-0000-0000-0000-000000000002',
+    id: '1cd41612-1f8b-403d-8335-0e08cff291c6',
     name: 'Savana Force LLP',
     code: 'CO2',
     google_sheet_id: '1VfqrI_tfr-FYQa4TGOcSHAG1BstIxY1H61bu-3i-p4Q',

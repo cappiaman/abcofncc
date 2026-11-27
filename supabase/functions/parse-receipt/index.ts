@@ -117,8 +117,8 @@ Return ONLY a valid JSON object with these exact keys:
 }
 `;
 
-    // Call Gemini API (using gemini-2.5-flash with fallback to gemini-1.5-flash)
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+    // Call Gemini API (using gemini-flash-lite-latest with fallback to gemini-flash-latest)
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${GEMINI_API_KEY}`;
 
     const geminiRequestBody = {
       contents: [
@@ -147,8 +147,8 @@ Return ONLY a valid JSON object with these exact keys:
     });
 
     if (!geminiResponse.ok) {
-      // Fallback to gemini-1.5-flash if 2.5-flash is temporarily unavailable
-      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+      // Fallback to gemini-flash-latest if flash-lite is experiencing high load
+      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
       geminiResponse = await fetch(fallbackUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

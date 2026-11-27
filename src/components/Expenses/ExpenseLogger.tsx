@@ -234,6 +234,12 @@ export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
       return;
     }
 
+    // Resolve matching company to guarantee valid database UUID
+    const dbCompany = (companies || []).find(
+      (c) => c.id === companyId || c.code === selectedCompany.code
+    ) || selectedCompany;
+    const finalCompanyId = dbCompany.id;
+
     setIsSubmitting(true);
 
     try {
@@ -253,7 +259,7 @@ export const ExpenseLogger: React.FC<ExpenseLoggerProps> = ({
         .from('expenses')
         .insert({
           receipt_code: receiptCode,
-          company_id: companyId,
+          company_id: finalCompanyId,
           user_id: user.id,
           project_id: projectId || null,
           expense_date: expenseDate,
